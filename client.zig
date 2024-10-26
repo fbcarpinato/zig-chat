@@ -26,6 +26,10 @@ fn handleInputThread(stream: std.net.Stream, _: std.mem.Allocator) !void {
         const input = try stdin.reader().readUntilDelimiterOrEof(&stdin_buffer, '\n');
 
         if (input) |m| {
+            if (std.mem.eql(u8, m, "quit")) {
+                break;
+            }
+
             var writer = stream.writer();
             _ = try writer.write(m);
         }
@@ -38,9 +42,12 @@ fn handleOutputThread(stream: std.net.Stream, _: std.mem.Allocator) !void {
     while (true) {
         const read_bytes = try stream.reader().read(&stream_buffer);
 
-        if (read_bytes > 0) {
+        if (read_bytes != 0) {
             const server_message = stream_buffer[0..read_bytes];
             std.debug.print("{s}\n", .{server_message});
+        } else {
+            std.debug.print("Lost connection to the server", .{});
+            break;
         }
     }
 }

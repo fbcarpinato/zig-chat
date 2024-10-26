@@ -49,7 +49,7 @@ fn handleClient(client: std.net.Server.Connection, client_idx: u32, connected_cl
             break;
         };
 
-        if (read_bytes > 0) {
+        if (read_bytes != 0) {
             const message = buffer[0..read_bytes];
             std.debug.print("Received message from {}: {s}\n", .{ client.address, message });
 
@@ -64,6 +64,9 @@ fn handleClient(client: std.net.Server.Connection, client_idx: u32, connected_cl
                     break;
                 };
             }
+        } else {
+            _ = connected_clients.remove(client_idx);
+            break;
         }
     }
 }
