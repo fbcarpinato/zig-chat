@@ -35,6 +35,11 @@ fn handleClient(client: std.net.Server.Connection) void {
         if (read_bytes > 0) {
             const message = buffer[0..read_bytes];
             std.debug.print("Received message from {}: {s}\n", .{ client.address, message });
+
+            _ = client.stream.writer().write("Your message has been received from the server") catch |err| {
+                std.debug.print("Error writing a response for the client {}\n", .{err});
+                break;
+            };
         }
     }
 }

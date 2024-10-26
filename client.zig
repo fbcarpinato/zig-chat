@@ -7,20 +7,31 @@ pub fn main() !void {
     defer stream.close();
 
     const stdin = std.io.getStdIn();
-    const reader = stdin.reader();
 
-    var buffer: [1024]u8 = undefined;
+    var stdin_buffer: [1024]u8 = undefined;
+    var stream_buffer: [1024]u8 = undefined;
 
     while (true) {
-        const message = try reader.readUntilDelimiterOrEof(&buffer, '\n');
+        const input = try stdin.reader().readUntilDelimiterOrEof(&stdin_buffer, '\n');
 
-        if (message) |m| {
+        if (input) |m| {
             std.debug.print("message {s}\n", .{m});
 
             var writer = stream.writer();
             _ = try writer.write(m);
 
             std.debug.print("Message {s} sent to the server\n", .{m});
+        }
+
+        std.debug.print("Trying to read some bytes from the server\n", .{});
+
+        const read_bytes = try stream.reader().read(&stream_buffer);
+
+        std.debug.print("Read {} bytes from server\n", .{read_bytes});
+
+        if (read_bytes > 0) {
+            const server_message = stream_buffer[0..read_bytes];
+            std.debug.print("Received message from server: {s}\n", .{server_message});
         }
     }
 }
