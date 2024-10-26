@@ -6,10 +6,17 @@ pub fn main() !void {
     const stream = try std.net.tcpConnectToAddress(server_address);
     defer stream.close();
 
+    var inputThread = try std.Thread.spawn(.{}, handleInputThread, .{stream});
+    var outputThread = try std.Thread.spawn(.{}, handleOutputThread, .{stream});
+
+    inputThread.join();
+    outputThread.join();
+}
+
+fn handleInputThread(stream: std.net.Stream) !void {
     const stdin = std.io.getStdIn();
 
     var stdin_buffer: [1024]u8 = undefined;
-    var stream_buffer: [1024]u8 = undefined;
 
     while (true) {
         const input = try stdin.reader().readUntilDelimiterOrEof(&stdin_buffer, '\n');
@@ -22,9 +29,13 @@ pub fn main() !void {
 
             std.debug.print("Message {s} sent to the server\n", .{m});
         }
+    }
+}
 
-        std.debug.print("Trying to read some bytes from the server\n", .{});
+fn handleOutputThread(stream: std.net.Stream) !void {
+    var stream_buffer: [1024]u8 = undefined;
 
+    while (true) {
         const read_bytes = try stream.reader().read(&stream_buffer);
 
         std.debug.print("Read {} bytes from server\n", .{read_bytes});
