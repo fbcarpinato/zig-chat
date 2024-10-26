@@ -1,13 +1,7 @@
 const std = @import("std");
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-
-    const loopback = try std.net.Ip4Address.parse("127.0.0.1", 3000);
-
+    const loopback = try std.net.Ip4Address.parse("127.0.0.1", 8999);
     const address = std.net.Address{ .in = loopback };
 
     var server = try address.listen(.{});
@@ -16,14 +10,31 @@ pub fn main() !void {
     std.debug.print("Server listening at port: {}\n", .{address.getPort()});
 
     while (true) {
-        var client = try server.accept();
-        defer client.stream.close();
+        const client = try server.accept();
 
-        std.debug.print("Connection received from {}\n", .{client.address});
+        var thread = try std.Thread.spawn(.{}, handleClient, .{client});
 
-        const message = try client.stream.reader().readAllAlloc(allocator, 1024);
-        defer allocator.free(message);
+        thread.detach();
+    }
+}
 
-        std.debug.print("Received message: {s}\n", .{message});
+fn handleClient(client: std.net.Server.Connection) void {
+    defer client.stream.close();
+
+    std.debug.print("Connection received from {}\n", .{client.address});
+
+    const buffer_size = 1024;
+    var buffer: [buffer_size]u8 = undefined;
+
+    while (true) {
+        const read_bytes = client.stream.reader().read(&buffer) catch |err| {
+            std.debug.print("Error reading message: {}\n", .{err});
+            break;
+        };
+
+        if (read_bytes > 0) {
+            const message = buffer[0..read_bytes];
+            std.debug.print("Received message from {}: {s}\n", .{ client.address, message });
+        }
     }
 }
